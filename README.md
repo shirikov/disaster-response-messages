@@ -1,10 +1,10 @@
-# Analysis of disaster response messages
+# Analysis of disaster response messages (WORK IN PROGRESS)
 
 For the Udacity Data Scientist Nanodegree course.
 
 ## Required software
 
-Python 3 (e.g., an Anaconda installation) with the following libraries installed: pandas, numpy, sklearn, ast, nltk, requests, bs4, matplotlib, datetime.
+Python 3 (e.g., an Anaconda installation) with the following libraries installed: pandas, numpy, sklearn, ast, nltk, requests, bs4, matplotlib, datetime, sqlalchemy.
 
 ## Acknowledgments
 
