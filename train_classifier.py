@@ -56,59 +56,64 @@ Y = df.drop(df.columns[[0, 1, 2, 3]], axis=1)
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=.30, 
                                                     random_state=42)
 
+# Function to fit and test the model
+def fit_test(model_pipeline):
+    
+    # Fit the model
+    model_pipeline.fit(X_train, Y_train)
+    
+    # Test the model
+    Y_pred = model_pipeline.predict(X_test)
+    
+    # Overall accuracy
+    print('Overall model accuracy:', (Y_pred == Y_test).mean().mean(), '\n')
+    
+    # Check precision and recall for all outcomes
+    print('Precision and recall for particular outcome variables:\n')
+    for i in range(0, Y_test.shape[1]):
+        print('Outcome:', Y_test.columns[i], '\n', 
+              classification_report(Y_test.iloc[:, i], Y_pred[:, i]))
+
 # Pipeline with a Naive Bayes classifier
-pipeline = Pipeline([
+pipeline_nb = Pipeline([
     ('tfidf', TfidfVectorizer(tokenizer=tokenize, stop_words=stop_words)),
     ('clf', MultiOutputClassifier(BernoulliNB()))
 ])
 
-# Fit on training data
-pipeline.fit(X_train, Y_train)
+fit_test(pipeline_nb)    
 
-# Predict on test data
-Y_pred = pipeline.predict(X_test)
-(Y_pred == Y_test).mean().mean()
-(Y_pred == Y_test).mean()
-
-# Improving model fit via grid search
+# Grid search for optimal parameters
 parameters = {
         'tfidf__ngram_range': ((1, 1), (1, 2)),
         'tfidf__max_df': (0.5, 0.75, 1.0),
-        'tfidf__max_features': (None, 5000, 10000),
+        'tfidf__max_features': (None, 10000),
         'clf__estimator__alpha': [0.25, 0.5, 0.75, 1]
     }
+cv = GridSearchCV(pipeline_nb, param_grid=parameters)
+fit_test(cv)
 
-cv = GridSearchCV(pipeline, param_grid=parameters)
-cv.fit(X_train, Y_train)
-cv.predict(X_test)
-Y_pred = cv.predict(X_test)
-(Y_pred == Y_test).mean().mean()
+# Check the parameters of the best model
+cv.best_params_
+cv.best_estimator_
 
-# Different models: logistic, random forests (without MultiOutput)
-pipeline2 = Pipeline([
+# Trying other models
+# logistic regression
+pipeline_logit = Pipeline([
     ('tfidf', TfidfVectorizer(tokenizer=tokenize, stop_words=stop_words)),
     ('clf', MultiOutputClassifier(LogisticRegression()))
 ])
 
-pipeline3 = Pipeline([
+fit_test(pipeline_logit) 
+
+# Random forest
+pipeline_rf = Pipeline([
     ('tfidf', TfidfVectorizer(tokenizer=tokenize, stop_words=stop_words)),
     ('clf', RandomForestClassifier())
 ])
 
-# Fit on training data
-pipeline2.fit(X_train, Y_train)
-pipeline3.fit(X_train, Y_train)
+fit_test(pipeline_rf) 
 
-# Predict on test data
-Y_pred = pipeline2.predict(X_test)
-(Y_pred == Y_test).mean().mean()
-(Y_pred == Y_test).mean()
-
-Y_pred = pipeline3.predict(X_test)
-(Y_pred == Y_test).mean().mean()
-(Y_pred == Y_test).mean()
-
-# Other features - sentiment
+# Adding other features (message sentiment)
 class SentimentExtractor(BaseEstimator, TransformerMixin):
 
     def get_polarity_scores(self, text):
@@ -125,7 +130,8 @@ class SentimentExtractor(BaseEstimator, TransformerMixin):
     def transform(self, X):
         X_sentiment = pd.Series(X).apply(self.get_polarity_scores)
         return pd.DataFrame(X_sentiment)
-    
+
+# Updated pipeline    
 pipeline_upd = Pipeline([
      ('features', FeatureUnion([
 
@@ -136,6 +142,8 @@ pipeline_upd = Pipeline([
 
     ('clf', RandomForestClassifier())
     ])
+
+fit_test(pipeline_upd) 
 
 # Export the model as a pickle file
 dump(cv.best_estimator_, 'disaster_messages_model.pkl')
