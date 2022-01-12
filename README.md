@@ -4,7 +4,7 @@ This project provides a classifier for messages in the wake of natural disasters
 
 ## Required software
 
-Python 3 (e.g., an Anaconda installation) with the following libraries installed: pandas, numpy, sklearn, ast, nltk, requests, bs4, matplotlib, datetime, sqlalchemy.
+Python 3 (e.g., an Anaconda installation) with the following libraries installed: pandas, numpy, sklearn, nltk, matplotlib, sqlalchemy, string, joblib.
 
 ## Overview of the code
 
@@ -14,7 +14,9 @@ The initial data are cleaned up using the script **process_data.py**, then vario
 
 The data set is constructed from two original data sets, where **messages.csv** provides translations for a variety of messages posted during various disasters, and **categories.csv** provides category labels for the messages (data were compiled by Figure Eight). There are 36 message categories, such as "medical help," "search and rescue," etc.; the classifier is applied to 35 categories, as there are no messages labeled "child alone". In total, the cleaned-up data include 26,248 messages.
 
-The script **process_data.py** cleans the data set and saves it in an SQL database.
+The script **process_data.py** cleans the data set and saves it in an SQL database. To run the script, execute the following:
+
+*'python process_data.py messages.csv categories.csv disaster_messages.db'*
 
 ## Modeling
 

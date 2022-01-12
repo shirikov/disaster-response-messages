@@ -1,32 +1,85 @@
+import sys
 import pandas as pd
 from sqlalchemy import create_engine
 
-# Load and merge data
-messages = pd.read_csv('messages.csv')
-categories = pd.read_csv('categories.csv')
-df = messages.merge(categories, how='left', on='id')
-
-# Create columns for categories of messages
-categories = df.categories.str.split(";", expand=True)
-
-# Extract category names for column names
-categories.columns = [(lambda x: x[:-2])(x) for x in categories.iloc[0]]
-
-# Set categories to 0 or 1
-for column in categories:
-    # Set each value to be 0 if the last character of the string is zero, 1 otherwise
-    categories[column] = 1 - (categories[column].str[-1] == '0').astype(int)
+# Load data
+def load_data(messages_filepath, categories_filepath):
     
-# Sort categories alphabetically
-categories = categories.reindex(columns=sorted(categories.columns))
+    '''Load and merge data on messages and categories.'''
+    
+    messages = pd.read_csv(messages_filepath)
+    categories = pd.read_csv(categories_filepath)
+    merged_df = messages.merge(categories, how='left', on='id')
+    
+    # Create columns for categories of messages
+    categories = merged_df.categories.str.split(";", expand=True)
+    
+    # Extract category names for column names
+    categories.columns = [(lambda x: x[:-2])(x) for x in categories.iloc[0]]
+    
+    # Set each value to be 0 if the last character of the string is zero, 1 otherwise
+    for column in categories:
+        categories[column] = 1 - (categories[column].str[-1] == '0').astype(int)
+        
+    # Sort categories alphabetically
+    categories = categories.reindex(columns=sorted(categories.columns))
 
-# Drop the original categories variable, replace with new dummies
-df = pd.concat([df.drop(columns=['categories']), categories], sort=False, axis=1)
+    # Drop the original categories variable, replace with new dummies
+    merged_df = pd.concat([merged_df.drop(columns=['categories']), categories], sort=False, axis=1)
 
-# Check the number of duplicates, drop them
-df[df.duplicated()].shape[0]
-df = df.drop_duplicates()
+    return merged_df
 
-# Save to SQL
-engine = create_engine('sqlite:///disaster_messages.db')
-df.to_sql('disaster_messages', engine, index=False, if_exists='replace')
+def clean_data(df):
+    
+    '''Check and drop duplicates.'''
+    
+    print(str(df[df.duplicated()].shape[0]), ' duplicate rows')
+    
+    cleaned_df = df.drop_duplicates()
+    
+    print('All duplicates deleted')
+    
+    return(cleaned_df)
+
+def save_data(df, database_filename):
+    
+    '''Save data to SQL.'''
+    
+    # Save to SQL
+    engine = create_engine('sqlite:///' + database_filename)
+    df.to_sql('disaster_messages', engine, index=False, if_exists='replace')
+
+def main():
+    if len(sys.argv) == 4:
+
+        messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
+
+        print('Loading data...\n    MESSAGES: {}\n    CATEGORIES: {}'
+              .format(messages_filepath, categories_filepath))
+        df = load_data(messages_filepath, categories_filepath)
+
+        print('Cleaning data...')
+        df = clean_data(df)
+        
+        print('Saving data...\n    DATABASE: {}'.format(database_filepath))
+        save_data(df, database_filepath)
+        
+        print('Cleaned data saved to database')
+    
+    else:
+        print('Please provide the filepaths of the messages and categories '\
+              'datasets as the first and second argument respectively, as '\
+              'well as the filepath of the database to save the cleaned data '\
+              'to as the third argument. \n\nExample: python process_data.py '\
+              'disaster_messages.csv disaster_categories.csv '\
+              'DisasterResponse.db')
+
+
+if __name__ == '__main__':
+    main()
+
+    
+
+
+
+
