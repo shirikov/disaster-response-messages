@@ -113,6 +113,19 @@ pipeline_rf = Pipeline([
 
 fit_test(pipeline_rf) 
 
+# So far, the overall accuracy has been best with logistic regression
+# Additional parameter tuning for this model
+parameters = {
+        'tfidf__ngram_range': ((1, 1), (1, 2)),
+        'tfidf__max_df': (0.5, 0.75, 1.0),
+        'tfidf__max_features': (None, 10000),
+        'clf__estimator__C': [1, 10, 50]
+    }
+
+cv = GridSearchCV(pipeline_logit, param_grid=parameters)
+fit_test(cv) 
+cv.best_params_
+
 # Adding other features (message sentiment)
 class SentimentExtractor(BaseEstimator, TransformerMixin):
 
@@ -131,8 +144,8 @@ class SentimentExtractor(BaseEstimator, TransformerMixin):
         X_sentiment = pd.Series(X).apply(self.get_polarity_scores)
         return pd.DataFrame(X_sentiment)
 
-# Updated pipeline    
-pipeline_upd = Pipeline([
+# Updated logit pipeline    
+pipeline_logit_upd = Pipeline([
      ('features', FeatureUnion([
 
         ('tfidf', TfidfVectorizer(tokenizer=tokenize, 
@@ -140,10 +153,10 @@ pipeline_upd = Pipeline([
         ('sentiment', SentimentExtractor())
         ])),
 
-    ('clf', RandomForestClassifier())
+    ('clf', MultiOutputClassifier(LogisticRegression()))
     ])
 
-fit_test(pipeline_upd) 
+fit_test(pipeline_logit_upd) 
 
 # Export the model as a pickle file
 dump(cv.best_estimator_, 'disaster_messages_model.pkl')
