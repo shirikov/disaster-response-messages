@@ -168,9 +168,9 @@ parameters = {
     }
 
 logit_cv = GridSearchCV(pipeline_logit_upd, param_grid=parameters)
+
+# Adding sentiment produced really minuscule improvements
 fit_test(logit_cv) 
 
-fit_test(pipeline_logit_upd) 
-
 # Export the model as a pickle file
-dump(cv.best_estimator_, 'disaster_messages_model.pkl')
+dump(logit_cv.best_estimator_, 'disaster_messages_model.pkl')
