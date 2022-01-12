@@ -8,9 +8,9 @@ Python 3 (e.g., an Anaconda installation) with the following libraries installed
 
 ## Data description
 
-The data set is constructed from two original data sets, where the first provides translations for a variety of social media messages posted during various disasters, and the second provides category labels for the messages (data compiled by Figure Eight). There are 36 message categories, such as "medical help," "search and rescue," etc. (the classifier predicts 35 categories, as there are no messages labeled as "child alone").
+The data set is constructed from two original data sets, where **messages.csv** provides translations for a variety of social media messages posted during various disasters, and **categories.csv** provides category labels for the messages (data compiled by Figure Eight). There are 36 message categories, such as "medical help," "search and rescue," etc. (the classifier predicts 35 categories, as there are no messages labeled as "child alone").
 
-The data sets are combined and cleaned using the script **process_data.py**.
+The data sets are combined, cleaned, and saved in an SQL database using the script **process_data.py**.
 
 ## Modeling
 
