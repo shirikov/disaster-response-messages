@@ -85,7 +85,8 @@ pipeline_nb = Pipeline([
 
 fit_test(pipeline_nb)    
 
-# Grid search for optimal parameters
+# Grid search for optimal parameters for the TD-IDF matrix and 
+# for the classifier (smoothing parameter alpha)
 parameters = {
         'tfidf__ngram_range': ((1, 1), (1, 2)),
         'tfidf__max_df': (0.5, 0.75, 1.0),
@@ -95,22 +96,22 @@ parameters = {
 cv = GridSearchCV(pipeline_nb, param_grid=parameters)
 fit_test(cv)
 
-# Check the parameters of the best model
+# Check the parameters of the best model - it's not improved much
 cv.best_params_
 cv.best_estimator_
 
 # Trying other models
-# logistic regression
+# logistic regression - this performs a bit better
 pipeline_logit = Pipeline([
-    ('tfidf', TfidfVectorizer(tokenizer=tokenize, stop_words=stop_words)),
+    ('tfidf', TfidfVectorizer(tokenizer=tokenize)),
     ('clf', MultiOutputClassifier(LogisticRegression()))
 ])
 
 fit_test(pipeline_logit) 
 
-# Random forest
+# Random forest - does better than Naive Bayes, but slighly worse than logit
 pipeline_rf = Pipeline([
-    ('tfidf', TfidfVectorizer(tokenizer=tokenize, stop_words=stop_words)),
+    ('tfidf', TfidfVectorizer(tokenizer=tokenize)),
     ('clf', RandomForestClassifier())
 ])
 
@@ -154,7 +155,6 @@ pipeline_logit_upd = Pipeline([
      ('features', FeatureUnion([
 
         ('tfidf', TfidfVectorizer(tokenizer=tokenize, 
-                                  stop_words=stop_words,
                                   ngram_range=(1, 2))),
         ('sentiment', SentimentExtractor())
         ])),

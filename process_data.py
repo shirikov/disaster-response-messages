@@ -15,7 +15,10 @@ categories.columns = [(lambda x: x[:-2])(x) for x in categories.iloc[0]]
 # Set categories to 0 or 1
 for column in categories:
     # Set each value to be 0 if the last character of the string is zero, 1 otherwise
-    categories[column] = (categories[column].str[-1] == '0').astype(int)
+    categories[column] = 1 - (categories[column].str[-1] == '0').astype(int)
+    
+# Sort categories alphabetically
+categories = categories.reindex(columns=sorted(categories.columns))
 
 # Drop the original categories variable, replace with new dummies
 df = pd.concat([df.drop(columns=['categories']), categories], sort=False, axis=1)
