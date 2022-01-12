@@ -129,14 +129,15 @@ parameters = {
 cv = GridSearchCV(pipeline_logit, param_grid=parameters)
 fit_test(cv) 
 
-# This model is only slightly better than the baseline logit
+# This model is only slightly better than the 'baseline' logit
 cv.best_params_
 
-# Adding other features (message sentiment)
+# Additional feature: message sentiment
+# Custom transformer to add to the pipeline
 class SentimentExtractor(BaseEstimator, TransformerMixin):
 
     def get_polarity_scores(self, text):
-        '''Returns polarity scores for words in Airbnb comments.'''
+        '''Returns polarity scores for words in messages.'''
         try:
             text_sent = sia.polarity_scores(text)
             return text_sent['compound']
@@ -150,7 +151,9 @@ class SentimentExtractor(BaseEstimator, TransformerMixin):
         X_sentiment = pd.Series(X).apply(self.get_polarity_scores)
         return pd.DataFrame(X_sentiment)
 
-# Updated logit pipeline    
+# Updated logit pipeline with the sentiment feature
+# Adding bigrams consistently proved to improve predictions a bit, 
+# so here they are in the pipeline by default
 pipeline_logit_upd = Pipeline([
      ('features', FeatureUnion([
 
@@ -170,7 +173,7 @@ parameters = {
 
 logit_cv = GridSearchCV(pipeline_logit_upd, param_grid=parameters)
 
-# Adding sentiment produced really minuscule improvements
+# Adding sentiment produces really minuscule improvements
 fit_test(logit_cv) 
 
 # Export the model as a pickle file
