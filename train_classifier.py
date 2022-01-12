@@ -59,6 +59,8 @@ X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=.30,
 # Function to fit and test the model
 def fit_test(model_pipeline):
     
+    '''Fit the model and print out model evaluations on test data.'''
+    
     # Fit the model
     model_pipeline.fit(X_train, Y_train)
     
@@ -124,6 +126,8 @@ parameters = {
 
 cv = GridSearchCV(pipeline_logit, param_grid=parameters)
 fit_test(cv) 
+
+# This model is only slightly better than the baseline logit
 cv.best_params_
 
 # Adding other features (message sentiment)
@@ -149,12 +153,22 @@ pipeline_logit_upd = Pipeline([
      ('features', FeatureUnion([
 
         ('tfidf', TfidfVectorizer(tokenizer=tokenize, 
-                                  stop_words=stop_words)),
+                                  stop_words=stop_words,
+                                  ngram_range=(1, 2))),
         ('sentiment', SentimentExtractor())
         ])),
 
     ('clf', MultiOutputClassifier(LogisticRegression()))
     ])
+
+# And additional tuning
+parameters = {
+        'features__tfidf__max_df': (0.5, 0.75, 1.0),
+        'clf__estimator__C': [1, 10, 50]
+    }
+
+logit_cv = GridSearchCV(pipeline_logit_upd, param_grid=parameters)
+fit_test(logit_cv) 
 
 fit_test(pipeline_logit_upd) 
 
