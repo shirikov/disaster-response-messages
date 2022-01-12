@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from joblib import dump
 from sqlalchemy import create_engine
-import re
+import string
 import nltk
 from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
@@ -33,13 +33,14 @@ def tokenize(text):
     '''Process and tokenize messages.'''
     
     # Remove punctuation and transform to lower case
-    text = re.sub(r"[^a-zA-Z0-9]", " ", text.lower().strip)
-    
+    text = text.translate(str.maketrans('', '', 
+                                        string.punctuation)).lower().strip()
     # Tokenize text
     tokens = word_tokenize(text)
     
-    # Lemmatize and remove stop words
-    tokens = [lemmatizer.lemmatize(word) for word in tokens]
+    # Lemmatize
+    tokens = [lemmatizer.lemmatize(word) for word in tokens if 
+              word not in stop_words]
 
     return tokens
 
@@ -51,7 +52,7 @@ df = pd.read_sql_table('disaster_messages', engine)
 df = df[df.columns[df.nunique() > 1]]
 
 # Split into predictor and outcome variables
-X = df.message
+X = df['message']
 Y = df.drop(df.columns[[0, 1, 2, 3]], axis=1)
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=.30, 
                                                     random_state=42)
@@ -78,7 +79,7 @@ def fit_test(model_pipeline):
 
 # Pipeline with a Naive Bayes classifier
 pipeline_nb = Pipeline([
-    ('tfidf', TfidfVectorizer(tokenizer=tokenize, stop_words=stop_words)),
+    ('tfidf', TfidfVectorizer(tokenizer=tokenize)),
     ('clf', MultiOutputClassifier(BernoulliNB()))
 ])
 

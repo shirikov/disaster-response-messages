@@ -10,17 +10,15 @@ df = messages.merge(categories, how='left', on='id')
 categories = df.categories.str.split(";", expand=True)
 
 # Extract category names for column names
-category_colnames = [(lambda x: x[:-2])(x) for x in categories.iloc[0]]
-categories.columns = category_colnames
+categories.columns = [(lambda x: x[:-2])(x) for x in categories.iloc[0]]
 
 # Set categories to 0 or 1
 for column in categories:
-    # Set each value to be the last character of the string
-    categories[column] = pd.to_numeric(categories[column].str[-1])
+    # Set each value to be 0 if the last character of the string is zero, 1 otherwise
+    categories[column] = (categories[column].str[-1] == '0').astype(int)
 
 # Drop the original categories variable, replace with new dummies
-df = df.drop(columns=['categories'])
-df = pd.concat([df, categories], sort=False, axis=1)
+df = pd.concat([df.drop(columns=['categories']), categories], sort=False, axis=1)
 
 # Check the number of duplicates, drop them
 df[df.duplicated()].shape[0]
@@ -28,4 +26,4 @@ df = df.drop_duplicates()
 
 # Save to SQL
 engine = create_engine('sqlite:///disaster_messages.db')
-df.to_sql('disaster_messages', engine, index=False)
+df.to_sql('disaster_messages', engine, index=False, if_exists='replace')
