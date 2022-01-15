@@ -5,7 +5,16 @@ from sqlalchemy import create_engine
 # Load data
 def load_data(messages_filepath, categories_filepath):
     
-    '''Load and merge data on messages and categories.'''
+    '''
+    Load and merge data on messages and categories.
+    
+    Args: 
+        messages_filepath: path to the messages data set
+        categories_filepath: path to the categories data set
+        
+    Returns: a merged data set of messages with category labels
+    
+    '''
     
     messages = pd.read_csv(messages_filepath)
     categories = pd.read_csv(categories_filepath)
@@ -33,7 +42,14 @@ def load_data(messages_filepath, categories_filepath):
 
 def clean_data(df):
     
-    '''Check and drop duplicates.'''
+    '''
+    Check and drop duplicates.
+    
+    Args:
+        df: merged data set with messages and categories
+    
+    Returns: cleaned data set
+    '''
     
     print(str(df[df.duplicated()].shape[0]), ' duplicate rows')
     
@@ -45,7 +61,13 @@ def clean_data(df):
 
 def save_data(df, data_filename):
     
-    '''Save data to SQL.'''
+    '''
+    Save data to SQL.
+    
+    Args: 
+        df: cleaned data set
+        data_filename: path to an SQL database to save the data in
+    '''
     
     # Save to SQL
     engine = create_engine('sqlite:///' + data_filename)
