@@ -17,15 +17,17 @@ def load_data(messages_filepath, categories_filepath):
     # Extract category names for column names
     categories.columns = [(lambda x: x[:-2])(x) for x in categories.iloc[0]]
     
-    # Set each value to be 0 if the last character of the string is zero, 1 otherwise
-    for column in categories:
-        categories[column] = 1 - (categories[column].str[-1] == '0').astype(int)
+    # Set each value to be 0 if the last character of the string is zero, 
+    # 1 otherwise
+    for col in categories:
+        categories[col] = 1 - (categories[col].str[-1] == '0').astype(int)
         
     # Sort categories alphabetically
     categories = categories.reindex(columns=sorted(categories.columns))
 
     # Drop the original categories variable, replace with new dummies
-    merged_df = pd.concat([merged_df.drop(columns=['categories']), categories], sort=False, axis=1)
+    merged_df = pd.concat([merged_df.drop(columns=['categories']), categories], 
+                          sort=False, axis=1)
 
     return merged_df
 
@@ -41,18 +43,18 @@ def clean_data(df):
     
     return(cleaned_df)
 
-def save_data(df, database_filename):
+def save_data(df, data_filename):
     
     '''Save data to SQL.'''
     
     # Save to SQL
-    engine = create_engine('sqlite:///' + database_filename)
+    engine = create_engine('sqlite:///' + data_filename)
     df.to_sql('disaster_messages', engine, index=False, if_exists='replace')
 
 def main():
     if len(sys.argv) == 4:
 
-        messages_filepath, categories_filepath, database_filepath = sys.argv[1:]
+        messages_filepath, categories_filepath, data_filepath = sys.argv[1:]
 
         print('Loading data...\n    MESSAGES: {}\n    CATEGORIES: {}'
               .format(messages_filepath, categories_filepath))
@@ -61,8 +63,8 @@ def main():
         print('Cleaning data...')
         df = clean_data(df)
         
-        print('Saving data...\n    DATABASE: {}'.format(database_filepath))
-        save_data(df, database_filepath)
+        print('Saving data...\n    DATABASE: {}'.format(data_filepath))
+        save_data(df, data_filepath)
         
         print('Cleaned data saved to database')
     
