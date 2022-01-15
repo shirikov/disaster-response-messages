@@ -1,3 +1,4 @@
+import sys
 import pandas as pd
 import numpy as np
 from joblib import dump
@@ -8,14 +9,9 @@ from nltk.corpus import stopwords
 from nltk.stem.wordnet import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.pipeline import Pipeline
 from sklearn.model_selection import train_test_split, GridSearchCV
-from sklearn.multioutput import MultiOutputClassifier
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.naive_bayes import BernoulliNB
-from nltk.sentiment import SentimentIntensityAnalyzer
-from sklearn.base import BaseEstimator, TransformerMixin
 from sklearn.metrics import classification_report
 
 nltk.download('punkt')
@@ -25,7 +21,23 @@ nltk.download('vader_lexicon')
 
 stop_words = stopwords.words("english")
 lemmatizer = WordNetLemmatizer()
-sia = SentimentIntensityAnalyzer()
+
+# Load data
+def load_data(database_filepath):
+    
+    '''Load the database from SQL.'''
+    
+    engine = create_engine('sqlite:///' + database_filepath)
+    df = pd.read_sql_table('disaster_messages', engine)
+
+    # Remove columns with no variation (nothing to predict)
+    df = df[df.columns[df.nunique() > 1]]
+    
+    # Split into predictor and outcome variables
+    X = df['message']
+    Y = df.drop(df.columns[[0, 1, 2, 3]], axis=1)
+    
+    return X, Y
 
 # Define a custom tokenizer
 def tokenize(text):
@@ -44,137 +56,67 @@ def tokenize(text):
 
     return tokens
 
-# Load SQL database
-engine = create_engine('sqlite:///disaster_messages.db')
-df = pd.read_sql_table('disaster_messages', engine)
-
-# Remove columns with no variation (nothing to predict)
-df = df[df.columns[df.nunique() > 1]]
-
-# Split into predictor and outcome variables
-X = df['message']
-Y = df.drop(df.columns[[0, 1, 2, 3]], axis=1)
-X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=.30, 
-                                                    random_state=42)
-
-# Function to fit and test the model
-def fit_test(model_pipeline):
+def build_model():
     
-    '''Fit the model and print out model evaluations on test data.'''
+    '''Construct the pipeline and set parameters for grid search.'''
     
-    # Fit the model
-    model_pipeline.fit(X_train, Y_train)
-    
-    # Test the model
-    Y_pred = model_pipeline.predict(X_test)
-    
-    # Overall accuracy
-    print('Overall model accuracy:', (Y_pred == Y_test).mean().mean(), '\n')
-    
-    # Check precision and recall for all outcomes
-    print('Precision and recall for particular outcome variables:\n')
-    for i in range(0, Y_test.shape[1]):
-        print('Outcome:', Y_test.columns[i], '\n', 
-              classification_report(Y_test.iloc[:, i], Y_pred[:, i]))
-
-# Pipeline with a Naive Bayes classifier
-pipeline_nb = Pipeline([
-    ('tfidf', TfidfVectorizer(tokenizer=tokenize)),
-    ('clf', MultiOutputClassifier(BernoulliNB()))
-])
-
-fit_test(pipeline_nb)    
-
-# Grid search for optimal parameters for the TD-IDF matrix and 
-# for the classifier (smoothing parameter alpha)
-parameters = {
-        'tfidf__ngram_range': ((1, 1), (1, 2)),
-        'tfidf__max_df': (0.5, 0.75, 1.0),
-        'tfidf__max_features': (None, 10000),
-        'clf__estimator__alpha': [0.25, 0.5, 0.75, 1]
-    }
-cv = GridSearchCV(pipeline_nb, param_grid=parameters)
-fit_test(cv)
-
-# Check the parameters of the best model - it's not improved much
-cv.best_params_
-cv.best_estimator_
-
-# Trying other models
-# logistic regression - this performs a bit better
-pipeline_logit = Pipeline([
-    ('tfidf', TfidfVectorizer(tokenizer=tokenize)),
-    ('clf', MultiOutputClassifier(LogisticRegression()))
-])
-
-fit_test(pipeline_logit) 
-
-# Random forest - does better than Naive Bayes, but slighly worse than logit
-pipeline_rf = Pipeline([
-    ('tfidf', TfidfVectorizer(tokenizer=tokenize)),
-    ('clf', RandomForestClassifier())
-])
-
-fit_test(pipeline_rf) 
-
-# So far, the overall accuracy has been best with logistic regression
-# Additional parameter tuning for this model
-parameters = {
-        'tfidf__ngram_range': ((1, 1), (1, 2)),
-        'tfidf__max_df': (0.5, 0.75, 1.0),
-        'tfidf__max_features': (None, 10000),
-        'clf__estimator__C': [1, 10, 50]
-    }
-
-cv = GridSearchCV(pipeline_logit, param_grid=parameters)
-fit_test(cv) 
-
-# This model is only slightly better than the 'baseline' logit
-cv.best_params_
-
-# Additional feature: message sentiment
-# Custom transformer to add to the pipeline
-class SentimentExtractor(BaseEstimator, TransformerMixin):
-
-    def get_polarity_scores(self, text):
-        '''Returns polarity scores for words in messages.'''
-        try:
-            text_sent = sia.polarity_scores(text)
-            return text_sent['compound']
-        except:
-            return np.nan
-        
-    def fit(self, x, y=None):
-        return self
-
-    def transform(self, X):
-        X_sentiment = pd.Series(X).apply(self.get_polarity_scores)
-        return pd.DataFrame(X_sentiment)
-
-# Updated logit pipeline with the sentiment feature
-# Adding bigrams consistently proved to improve predictions a bit, 
-# so here they are in the pipeline by default
-pipeline_logit_upd = Pipeline([
-     ('features', FeatureUnion([
-
-        ('tfidf', TfidfVectorizer(tokenizer=tokenize, 
-                                  ngram_range=(1, 2))),
-        ('sentiment', SentimentExtractor())
-        ])),
-
-    ('clf', MultiOutputClassifier(LogisticRegression()))
+    pipeline = Pipeline([
+        ('tfidf', TfidfVectorizer(tokenizer=tokenize)),
+        ('clf', RandomForestClassifier())
     ])
+    
+    return(pipeline)
 
-# And additional tuning
-parameters = {
-        'features__tfidf__max_df': (0.5, 0.75, 1.0),
-        'clf__estimator__C': [1, 10, 50]
-    }
+def evaluate_model(model, X_test, Y_test):
+    
+    '''Evaluate model fit on the test data.'''
+    
+    # Predict on the test set
+    Y_pred = model.predict(X_test)
+    
+    print('Overall model accuracy:', (Y_pred == Y_test).mean().mean(), '\n')
+  
+    print('Precision and recall for particular categories:\n')
+    for i in range(0, Y_test.shape[1]):
+        print('Category:', Y_test.columns[i], '\n', 
+              classification_report(Y_test.iloc[:, i], Y_pred[:, i]))
+        
+def save_model(model, model_filepath):
+    
+    '''Save the model in a pickle file.'''
+    
+    dump(model, model_filepath)
+    
+def main():
+    if len(sys.argv) == 3:
+        database_filepath, model_filepath = sys.argv[1:]
+        print('Loading data...\n    DATABASE: {}'.format(database_filepath))
+        X, Y = load_data(database_filepath)
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, 
+                                                            test_size=0.3,
+                                                            random_state=42)
+        
+        print('Building model...')
+        model = build_model()
+        
+        print('Training model...')
+        model.fit(X_train, Y_train)
+        
+        print('Evaluating model...')
+        evaluate_model(model, X_test, Y_test)
 
-logit_cv = GridSearchCV(pipeline_logit_upd, param_grid=parameters)
+        print('Saving model...\n    MODEL: {}'.format(model_filepath))
+        save_model(model, model_filepath)
 
-# Adding sentiment produces really minuscule improvements
-fit_test(logit_cv) 
+        print('Trained model saved')
 
-# Export the model as a pickle file
-dump(logit_cv.best_estimator_, 'disaster_messages_model.pkl')
+    else:
+        print('Please provide the filepath of the disaster messages database '\
+              'as the first argument and the filepath of the pickle file to '\
+              'save the model to as the second argument. \n\nExample: python '\
+              'train_classifier.py ../data/DisasterResponse.db classifier.pkl')
+
+
+if __name__ == '__main__':
+    main()
+ 
