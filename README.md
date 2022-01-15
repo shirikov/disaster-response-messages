@@ -16,7 +16,7 @@ The data set is constructed from two original data sets, where **messages.csv** 
 
 The script **data/process_data.py** cleans the data set and saves it in an SQL database. To run the script, execute the following:
 
-*'python data/process_data.py data/messages.csv data/categories.csv data/disaster_messages.db'*
+*'python data/process_data.py data/messages.csv data/categories.csv data/DisasterResponse.db'*
 
 ## Modeling
 
@@ -29,17 +29,15 @@ The script **models/train_classifier.py** then applies a text classifier to the 
 
 To run the script, execute the following:
 
-*'python models/train_classifier.py data/disaster_messages.db models/classifier.pkl'*
+*'python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl'*
 
-The main classifier used is a random forest model. An additional script **explore_classifiers.py** tries two other classifiers, Naive Bayes and SVM, as well as an additional feature (message sentiment). These alternatives do not improve predictions.
+The main classifier used is a support vector machine classification. An additional script **explore_classifiers.py** tries two other classifiers, Naive Bayes and random forests, as well as an additional feature, message sentiment. (To look at these alternatives, execute *'python models/explore_classifiers.py data/DisasterResponse.db'*.)
 
 ## Results
 
-All classifiers performed on average rather similarly, with overall prediction accuracy above 93 percent, but the random forest model turned out to be slightly better (over 94 percent accuracy).
+Judging by the F1 score, SVM produced better predictions. Prediction quality, however, varies substantially between categories of messages. For example, weather-related messages are predicted fairly well, whereas requests for electricity or medical help are predicted very poorly. Partly this can be explained by an imbalance in the data---there are very few messages in some of these categories. As a result, in such cases, negatives (*not falling* into a particular category) are predicted much better than positives (falling into that category). E.g., only a few dozen messages out of 26 thousand are labeled as "offer," and the classifier completely fails here.
 
-However, it is worth noting the imbalance in the data---there is a small number of messages in some of the categories. In such cases, negatives (**not falling** into a particular category) are predicted better than positives (falling into that category). For example, for the category "medical help" (only about 10 percent of all messages are labeled as "medical help") both precision and recall are close to 1 when predicting that a message does not fall under medical help, but both are much lower when predicting that it does. Predicting becomes even more difficult as the number of "successes" (positives) decreases. E.g., only a few dozen messages out of 26 thousand are labeled as "offer," and the classifier fails here: none of the messages are predicted to be in that category. Relatedly, we can see that when there are just a few positives, recall is much lower than precision. In other words, while the classifier rarely produces false positives, it tends to produce some false negatives.
-
-One way to address this problem could be to fit different classifiers to different categories, tuning some of them to predict rare positives. However, given that in some categories, we have only a few messages, it would probably make more sense to merge these categories with some related ones (unless a particular category is really important to us, and it is crucial to try to predict such messages).
+One way to address this problem could be to fit different classifiers to different categories, tuning some of them to predict rare positives. However, given that in some categories, we have only a few messages, any such improvements would be limited, and it would probably make more sense to merge these categories with some related ones (unless a particular category is really important to us, and it is crucial to try to predict such messages).
 
 ## Web app: classification and visualization
 
