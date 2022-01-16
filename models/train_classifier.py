@@ -17,7 +17,6 @@ from sklearn.metrics import f1_score, precision_score, recall_score
 nltk.download('punkt')
 nltk.download('stopwords')
 nltk.download('wordnet')
-nltk.download('vader_lexicon')
 
 stop_words = stopwords.words("english")
 lemmatizer = WordNetLemmatizer()
@@ -84,11 +83,11 @@ def build_model():
 
     parameters = {
             'tfidf__ngram_range': ((1, 1), (1, 2)),
-            'tfidf__max_df': (0.5, 0.75, 1.0),
             'clf__estimator__C': [0.01, 1, 100],
             'clf__estimator__kernel': ['poly', 'rbf']
         }
-    pipeline_cv = GridSearchCV(pipeline, param_grid=parameters)
+    pipeline_cv = GridSearchCV(pipeline, param_grid=parameters,
+                               n_jobs=-1, verbose=3)
     
     return(pipeline_cv)
 
@@ -139,7 +138,7 @@ def save_model(model, model_filepath):
         model_filepath: path to a file where a classifier is saved
     '''
     
-    dump(model, model_filepath)
+    dump(model.best_estimator_, model_filepath)
     
 def main():
     if len(sys.argv) == 3:
