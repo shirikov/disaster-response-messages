@@ -4,7 +4,7 @@ This project provides a classifier for messages in the wake of natural disasters
 
 ## Required software
 
-Python 3 (e.g., an Anaconda installation) with the following libraries installed: pandas, numpy, sklearn, nltk, matplotlib, sqlalchemy, string, joblib, plotly, flask.
+Python 3 (e.g., an Anaconda installation) with the following libraries installed: pandas, numpy, sklearn, nltk, json, sqlalchemy, string, joblib, plotly, flask.
 
 ## Overview of the code
 
